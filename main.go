@@ -1,25 +1,31 @@
 package main
 
 import (
-    "fmt"
-    "log"
-    "net/http"
+	"fmt"
+	"log"
 
-    "go-crud-api/routes"
-    "go-crud-api/models"
+	"go-crud-api/models"
+	"go-crud-api/routes"
+	"go-crud-api/middleware"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-    // Initialize the DB connection
-    dsn := "root:Nayan123!@#@tcp(127.0.0.1:3306)/tasks_db"
+	// Initialize the DB connection
+	dsn := "root:Nayan123!@#@tcp(127.0.0.1:3306)/tasks_db"
 
-    // Initialize the DB connection
-    models.InitDB(dsn)
+	// Initialize the DB connection
+	models.InitDB(dsn)
 
-    // Setup routes
-    r := routes.SetupRoutes()
 
-    // Start the server
-    fmt.Println("🚀 Server running at http://localhost:8080")
-    log.Fatal(http.ListenAndServe(":8080", r))
+	// Setup routes
+	r := gin.Default()
+	routes.SetupRoutes(r)
+
+	r.Use(middleware.CustomLogger())
+
+	// Start the server
+	fmt.Println("🚀 Server running at http://localhost:8080")
+	log.Fatal(r.Run(":8080"))
 }

@@ -2,12 +2,16 @@ package middleware
 
 import (
     "log"
-    "net/http"
+    "time"
+
+    "github.com/gin-gonic/gin"
 )
 
-func CustomLogger(next http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        log.Printf("Custom log: %s %s", r.Method, r.URL.Path)
-        next.ServeHTTP(w, r)
-    })
+func CustomLogger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+		duration := time.Since(start)
+		log.Printf("Custom log: %s %s (%v)", c.Request.Method, c.Request.URL.Path, duration)
+	}
 }

@@ -1,90 +1,82 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
-	"log"
 
+	"github.com/gin-gonic/gin"
 	"go-crud-api/models"
-
-	"github.com/go-chi/chi/v5"
 )
 
-func CreateTask(w http.ResponseWriter, r *http.Request) {
+func CreateTask(c *gin.Context) {
 	var t models.Task
-	err := json.NewDecoder(r.Body).Decode(&t)
-	if err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&t); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
 
 	created, err := models.AddTask(t)
 	if err != nil {
-		log.Println("Error decoding request body:", err) // debugging line
-		http.Error(w, "Failed to create task", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create task"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(created)
+	c.JSON(http.StatusOK, created)
 }
 
-func GetTasks(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+func GetTasks(c *gin.Context) {
 	tasks, err := models.GetAllTasks()
 	if err != nil {
-		http.Error(w, "Failed to fetch tasks", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tasks"})
 		return
 	}
-	json.NewEncoder(w).Encode(tasks)
+	c.JSON(http.StatusOK, tasks)
 }
 
-func UpdateTask(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
+func UpdateTask(c *gin.Context) {
+	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 		return
 	}
 
 	var t models.Task
-	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&t); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
 
 	updated, ok, err := models.UpdateTask(id, t)
 	if err != nil {
-		http.Error(w, "Failed to update task", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update task"})
 		return
 	}
 	if !ok {
-		http.Error(w, "Task not found", http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(updated)
+	c.JSON(http.StatusOK, updated)
 }
 
-func DeleteTask(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
+func DeleteTask(c *gin.Context) {
+	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 		return
 	}
 
 	ok, err := models.DeleteTask(id)
 	if err != nil {
-		http.Error(w, "Failed to delete task", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete task"})
 		return
 	}
 	if !ok {
-		http.Error(w, "Task not found", http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	c.Status(http.StatusNoContent)
 }

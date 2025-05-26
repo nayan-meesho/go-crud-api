@@ -1,22 +1,18 @@
 package routes
 
 import (
-    "github.com/go-chi/chi/v5"
-    "github.com/go-chi/chi/v5/middleware"
     "go-crud-api/handlers"
+
+    "github.com/gin-gonic/gin"
 )
 
-func SetupRoutes() *chi.Mux {
-    r := chi.NewRouter()
-
-    // Built-in logging middleware
-    r.Use(middleware.Logger)
-    r.Route("/tasks", func(r chi.Router) {
-        r.Get("/", handlers.GetTasks)          // GET /tasks
-        r.Post("/", handlers.CreateTask)       // POST /tasks
-        r.Put("/{id}", handlers.UpdateTask)    // PUT /tasks/{id}
-        r.Delete("/{id}", handlers.DeleteTask) // DELETE /tasks/{id}
-    })
-
-    return r
+func SetupRoutes(r *gin.Engine) {
+    tasks := r.Group("/tasks") 
+    {
+        tasks.GET("/", handlers.GetTasks)
+        tasks.POST("/", handlers.CreateTask)
+        tasks.PUT("/:id", handlers.UpdateTask)
+        tasks.DELETE("/:id", handlers.DeleteTask)
+    }
+    
 }
