@@ -1,109 +1,74 @@
 package models
 
 import (
-    "database/sql"
-    // "errors"
     "log"
 
-    _ "github.com/go-sql-driver/mysql"
+    "gorm.io/driver/mysql"
+    "gorm.io/gorm"
 )
 
-var db *sql.DB
+var DB *gorm.DB
 
 // Task represents a to-do task with an ID, Title, and Done status.
 type Task struct {
-    ID      int    `json:"id"`
+    ID      uint   `gorm:"primaryKey" json:"id"`
     Title   string `json:"title"`
     Done    bool   `json:"done"`
 }
 
 // InitDB initializes the DB connection
-func InitDB(dataSourceName string) {
+func InitDB(dsn string) {
     var err error
-    db, err = sql.Open("mysql", dataSourceName)
+    DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
     if err != nil {
-        log.Fatalf("Error opening database: %v", err)
+        log.Fatalf("Failed to connect to database:  %v", err)
     }
 
-    if err = db.Ping(); err != nil {
-        log.Fatalf("Error connecting to database: %v", err)
+    if err = DB.AutoMigrate(&Task{}); err != nil {
+        log.Fatalf("Failed to migrate database schema: %v", err)
     }
 
-    log.Println("Connected to MySQL database!")
+    log.Println("Connected to MySQL using GORM!")
 }
 
 // AddTask adds a new task to the in-memory list and assigns it an ID.
 func AddTask(t Task) (Task, error) {
-    result, err := db.Exec("INSERT INTO tasks (title, done) VALUES (?, ?)", t.Title, t.Done)
-    if err != nil {
-        return Task{}, err
-    }
-
-    id, err := result.LastInsertId()
-    if err != nil {
-        return Task{}, err
-    }
-
-    t.ID = int(id)
-    return t, nil
+    if err := DB.Create(&t).Error; err != nil {
+		return Task{}, err
+	}
+	return t, nil
 }
 
 func GetAllTasks() ([]Task, error) {
-    rows, err := db.Query("SELECT id, title, done FROM tasks")
-
-    if err != nil {
-        return nil, err
-    }
-
-    defer rows.Close()
-
     var tasks []Task
-
-    for rows.Next() {
-        var t Task
-        var doneInt int
-        if err := rows.Scan(&t.ID, &t.Title, &doneInt); err != nil {
-            return nil, err
-        }
-        t.Done = doneInt == 1
-        tasks = append(tasks, t)
-    }
-
-    if err := rows.Err(); err != nil {
-        return nil, err
-    }
-
-    return tasks, nil
+	if err := DB.Find(&tasks).Error; err != nil {
+		return nil, err
+	}
+	return tasks, nil
 }
 
 func UpdateTask(id int, updated Task) (Task, bool, error) {
-    res, err := db.Exec("UPDATE tasks SET title=?, done=? WHERE id=?", updated.Title, updated.Done, id)
-    if err != nil {
-        return Task{}, false, err
-    }
+    var task Task
+    if err := DB.First(&task, id).Error; err != nil {
+		return Task{}, false, nil
+	}
 
-    rowsAffected, err := res.RowsAffected()
-    if err != nil {
-        return Task{}, false, err
-    }
+	task.Title = updated.Title
+	task.Done = updated.Done
 
-    if rowsAffected == 0 {
-        return Task{}, false, nil
-    }
-    updated.ID = id
-    return updated, true, nil
+	if err := DB.Save(&task).Error; err != nil {
+		return Task{}, false, err
+	}
+
+	return task, true, nil
 }
 
 func DeleteTask(id int) (bool, error) {
-    res, err := db.Exec("DELETE FROM tasks WHERE id=?", id)
-    if err != nil {
-        return false, err
+    res := DB.Delete(&Task{}, id)
+
+    if res.Error != nil {
+        return false, res.Error
     }
 
-    rowsAffected, err := res.RowsAffected()
-    if err != nil {
-        return false, err
-    }
-
-    return rowsAffected > 0, nil
+    return res.RowsAffected > 0, nil
 }

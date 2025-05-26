@@ -14,8 +14,6 @@ import (
 func main() {
 	// Initialize the DB connection
 	dsn := "root:Nayan123!@#@tcp(127.0.0.1:3306)/tasks_db"
-
-	// Initialize the DB connection
 	models.InitDB(dsn)
 
 
@@ -23,6 +21,7 @@ func main() {
 	r := gin.Default()
 	routes.SetupRoutes(r)
 
+	// Use the custom logger middleware
 	r.Use(middleware.CustomLogger())
 
 	// Start the server
