@@ -15,6 +15,7 @@ func main() {
 	// Initialize the DB connection
 	dsn := "root:Nayan123!@#@tcp(127.0.0.1:3306)/tasks_db"
 	models.InitDB(dsn)
+	models.InitRedis("localhost:6379")
 
 
 	// Setup routes
