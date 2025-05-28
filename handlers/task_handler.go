@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go-crud-api/models"
+	"go-crud-api/kafka"
 )
 
 func CreateTask(c *gin.Context) {
@@ -26,6 +27,10 @@ func CreateTask(c *gin.Context) {
 
 	// Invalidate the cache
 	models.RDB.Del(models.Ctx, "tasks")
+
+	// Publish to Kafka
+	taskJson, _ := json.Marshal(created)
+	kafka.PublishMessage(string(taskJson))
 
 	c.JSON(http.StatusOK, created)
 }
@@ -84,6 +89,10 @@ func UpdateTask(c *gin.Context) {
 	// Invalidate the cache
 	models.RDB.Del(models.Ctx, "tasks")
 
+	// Publish to Kafka
+	taskJson, _ := json.Marshal(updated)
+	kafka.PublishMessage(string(taskJson))
+
 	c.JSON(http.StatusOK, updated)
 }
 
@@ -107,6 +116,10 @@ func DeleteTask(c *gin.Context) {
 
 	// Invalidate the cache
 	models.RDB.Del(models.Ctx, "tasks")
+
+	// Publish to Kafka
+	taskJson, _ := json.Marshal(id)
+	kafka.PublishMessage(string(taskJson))
 
 	c.Status(http.StatusNoContent)
 }
